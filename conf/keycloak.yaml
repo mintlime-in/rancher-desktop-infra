@@ -1,0 +1,444 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: keycloak
+---
+apiVersion: stackgres.io/v1
+kind: SGInstanceProfile
+metadata:
+  annotations:
+    stackgres.io/operatorVersion: 1.18.2
+  labels:
+    app: StackGresCluster
+    stackgres.io/cluster-default-config: "true"
+    stackgres.io/cluster-name: keycloak-db
+  name: keycloak-db-default
+  namespace: keycloak
+spec:
+  containers:
+    backup.create-backup:
+      cpu: "1"
+      memory: 256Mi
+    cluster-controller:
+      cpu: 250m
+      memory: 512Mi
+    dbops.run-dbops:
+      cpu: "1"
+      memory: 256Mi
+    dbops.set-dbops-result:
+      cpu: "1"
+      memory: 256Mi
+    envoy:
+      cpu: 250m
+      memory: 64Mi
+    fluent-bit:
+      cpu: 63m
+      memory: 64Mi
+    fluentd:
+      cpu: 250m
+      memory: 2Gi
+    pgbouncer:
+      cpu: 250m
+      memory: 64Mi
+    postgres-util:
+      cpu: 63m
+      memory: 64Mi
+    prometheus-postgres-exporter:
+      cpu: 63m
+      memory: 256Mi
+  cpu: "1"
+  initContainers:
+    cluster-reconciliation-cycle:
+      cpu: "1"
+      memory: 2Gi
+    dbops.set-dbops-running:
+      cpu: "1"
+      memory: 256Mi
+    major-version-upgrade:
+      cpu: "1"
+      memory: 2Gi
+    reset-patroni:
+      cpu: "1"
+      memory: 2Gi
+    setup-filesystem:
+      cpu: "1"
+      memory: 2Gi
+  memory: 2Gi
+  requests:
+    containers:
+      backup.create-backup:
+        cpu: "1"
+        memory: 256Mi
+      cluster-controller:
+        cpu: 250m
+        memory: 512Mi
+      dbops.run-dbops:
+        cpu: "1"
+        memory: 256Mi
+      dbops.set-dbops-result:
+        cpu: "1"
+        memory: 256Mi
+      envoy:
+        cpu: 250m
+        memory: 64Mi
+      fluent-bit:
+        cpu: 63m
+        memory: 64Mi
+      fluentd:
+        cpu: 250m
+        memory: 2Gi
+      pgbouncer:
+        cpu: 250m
+        memory: 64Mi
+      postgres-util:
+        cpu: 63m
+        memory: 64Mi
+      prometheus-postgres-exporter:
+        cpu: 63m
+        memory: 256Mi
+    cpu: "1"
+    initContainers:
+      cluster-reconciliation-cycle:
+        cpu: "1"
+        memory: 2Gi
+      dbops.set-dbops-running:
+        cpu: "1"
+        memory: 256Mi
+      major-version-upgrade:
+        cpu: "1"
+        memory: 2Gi
+      reset-patroni:
+        cpu: "1"
+        memory: 2Gi
+      setup-filesystem:
+        cpu: "1"
+        memory: 2Gi
+    memory: 2Gi
+---
+apiVersion: stackgres.io/v1
+kind: SGPostgresConfig
+metadata:
+  annotations:
+    stackgres.io/operatorVersion: 1.18.2
+  labels:
+    app: StackGresCluster
+    stackgres.io/cluster-default-config: "true"
+    stackgres.io/cluster-name: keycloak-db
+  name: keycloak-db-18-default
+  namespace: keycloak
+spec:
+  postgresVersion: "18"
+  postgresql.conf:
+    autovacuum_max_workers: "3"
+    autovacuum_vacuum_cost_delay: 2ms
+    autovacuum_work_mem: 512MB
+    checkpoint_completion_target: "0.9"
+    checkpoint_timeout: 15min
+    default_statistics_target: "200"
+    default_toast_compression: lz4
+    enable_partitionwise_aggregate: "on"
+    enable_partitionwise_join: "on"
+    fsync: "on"
+    hot_standby: "on"
+    huge_pages: "off"
+    jit_inline_above_cost: "-1"
+    log_autovacuum_min_duration: 0ms
+    log_checkpoints: "on"
+    log_connections: "on"
+    log_disconnections: "on"
+    log_line_prefix: "%t [%p]: db=%d,user=%u,app=%a,client=%h "
+    log_lock_waits: "on"
+    log_min_duration_statement: 1s
+    log_statement: none
+    log_temp_files: 0kB
+    maintenance_work_mem: 2GB
+    max_locks_per_transaction: "128"
+    max_pred_locks_per_transaction: "128"
+    max_prepared_transactions: "32"
+    max_replication_slots: "20"
+    max_wal_senders: "20"
+    max_wal_size: 2GB
+    min_wal_size: 1GB
+    pg_stat_statements.track_utility: "off"
+    random_page_cost: "1.5"
+    shared_preload_libraries: pg_stat_statements, auto_explain
+    superuser_reserved_connections: "8"
+    track_activity_query_size: 4kB
+    track_commit_timestamp: "on"
+    track_functions: pl
+    track_io_timing: "on"
+    wal_compression: "on"
+    wal_keep_size: 1536MB
+    wal_level: logical
+    work_mem: 10MB
+---
+apiVersion: stackgres.io/v1
+kind: SGPoolingConfig
+metadata:
+  annotations:
+    stackgres.io/operatorVersion: 1.18.2
+  labels:
+    app: StackGresCluster
+    stackgres.io/cluster-default-config: "true"
+    stackgres.io/cluster-name: keycloak-db
+  name: keycloak-db-default
+  namespace: keycloak
+spec:
+  pgBouncer:
+    pgbouncer.ini:
+      pgbouncer:
+        application_name_add_host: "1"
+        default_pool_size: "1000"
+        ignore_startup_parameters: extra_float_digits
+        max_client_conn: "1000"
+        max_db_connections: "0"
+        max_user_connections: "0"
+        pool_mode: session
+        server_check_query: ;
+---
+# apiVersion: stackgres.io/v1
+# kind: SGScript
+# metadata:
+#   annotations:
+#     stackgres.io/operatorVersion: 1.18.2
+#   labels:
+#     app: StackGresCluster
+#     stackgres.io/cluster-name: keycloak-db
+#   name: keycloak-db-default
+#   namespace: keycloak
+# spec:
+#   managedVersions: true
+#   scripts:
+#   - id: 0
+#     name: prometheus-postgres-exporter-init
+#     retryOnError: true
+#     script: |
+#       CREATE EXTENSION IF NOT EXISTS dblink;
+#       CREATE EXTENSION IF NOT EXISTS plpython3u;
+#       CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+
+#       CREATE OR REPLACE FUNCTION df(path text)
+#       RETURNS SETOF text
+#       AS
+#       $$
+#         import subprocess
+#         try:
+#           result = subprocess.run(['df', '-B1', '--output=source,target,fstype,size,avail,itotal,iavail', path], timeout=1, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='UTF-8')
+#         except:
+#           return ['- ' + path + ' - - - - - timeout']
+#         if result.returncode == 0:
+#           return result.stdout.split('\n')[1:2]
+#         else:
+#           return ['- ' + path + ' - - - - - ' + result.stderr.replace(' ', '\\s')]
+#       $$
+#       LANGUAGE plpython3u;
+
+#       CREATE OR REPLACE FUNCTION mounts()
+#       RETURNS SETOF text
+#       AS
+#       $$
+#         import subprocess
+#         return subprocess.run(['cat', '/proc/mounts'], stdout=subprocess.PIPE, encoding='UTF-8').stdout.split('\n')
+#       $$
+#       LANGUAGE plpython3u;
+#     version: 0
+#   - id: 4
+#     name: password-update
+#     retryOnError: true
+#     scriptFrom:
+#       secretKeyRef:
+#         key: roles-update-sql
+#         name: keycloak-db
+#     version: 0
+---
+apiVersion: stackgres.io/v1
+kind: SGCluster
+metadata:
+  annotations:
+    stackgres.io/operatorVersion: 1.18.2
+  name: keycloak-db
+  namespace: keycloak
+spec:
+  configurations:
+    observability:
+      disableMetrics: false
+      prometheusAutobind: false
+    sgPoolingConfig: keycloak-db-default
+    sgPostgresConfig: keycloak-db-18-default
+  instances: 1
+  managedSql:
+    continueOnSGScriptError: false
+    scripts:
+    - id: 0
+      sgScript: keycloak-db-default
+  pods:
+    disableConnectionPooling: false
+    disableEnvoy: true
+    disableMetricsExporter: false
+    disablePostgresUtil: false
+    managementPolicy: OrderedReady
+    persistentVolume:
+      size: 5Gi
+    updateStrategy:
+      method: InPlace
+      type: OnlyDbOps
+  postgres:
+    flavor: vanilla
+    ssl:
+      enabled: true
+    version: latest
+  postgresServices:
+    primary:
+      enabled: true
+      type: ClusterIP
+    replicas:
+      enabled: true
+      type: ClusterIP
+  profile: testing
+  replication:
+    mode: async
+    role: ha-read
+  sgInstanceProfile: keycloak-db-default
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: keycloak-ingress
+  namespace: keycloak
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: auth.localhost
+    http:
+      paths:
+      - backend:
+          service:
+            name: keycloak
+            port:
+              number: 8080
+        path: /
+        pathType: ImplementationSpecific
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: keycloak
+  namespace: keycloak
+  labels:
+    app: keycloak
+spec:
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: http
+      name: http
+  selector:
+    app: keycloak
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: keycloak
+  name: keycloak-discovery
+  namespace: keycloak
+spec:
+  selector:
+    app: keycloak
+  clusterIP: None
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: keycloak
+  namespace: keycloak
+  labels:
+    app: keycloak
+spec:
+  serviceName: keycloak-discovery
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:26.5.2
+          args: ["start"]
+          env:
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
+              value: "admin"
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
+              value: "admin"
+            - name: KC_PROXY_HEADERS
+              value: "xforwarded"
+            - name: KC_HTTP_ENABLED
+              value: "true"
+            - name: KC_HOSTNAME_STRICT
+              value: "false"
+            - name: KC_HEALTH_ENABLED
+              value: "true"
+            - name: 'KC_CACHE'
+              value: 'ispn'
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: KC_CACHE_EMBEDDED_NETWORK_BIND_ADDRESS
+              value: '$(POD_IP)'
+            - name: 'KC_DB_URL_DATABASE'
+              value: 'postgres'
+            - name: 'KC_DB_URL_HOST'
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-binding
+                  key: host
+            - name: 'KC_DB_PORT'
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-binding
+                  key: port
+            - name: 'KC_DB'
+              value: 'postgres'
+            - name: 'KC_DB_PASSWORD'
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-binding
+                  key: password
+            - name: 'KC_DB_USERNAME'
+              valueFrom:
+                secretKeyRef:
+                  name: keycloak-db-binding
+                  key: username
+          ports:
+            - name: http
+              containerPort: 8080
+            - name: jgroups
+              containerPort: 7800
+            - name: jgroups-fd
+              containerPort: 57800
+          # startupProbe:
+          #   httpGet:
+          #     path: /health/started
+          #     port: 9000
+          #   periodSeconds: 1
+          #   failureThreshold: 600              
+          # readinessProbe:
+          #   httpGet:
+          #     path: /health/ready
+          #     port: 9000
+          #   periodSeconds: 10
+          #   failureThreshold: 3              
+          # livenessProbe:
+          #   httpGet:
+          #     path: /health/live
+          #     port: 9000
+          #   periodSeconds: 10
+          #   failureThreshold: 3
+---
