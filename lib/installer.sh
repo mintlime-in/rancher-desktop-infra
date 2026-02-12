@@ -5,6 +5,8 @@ function usage() {
   Usage: bash $0 -c <kubecontext> [-i/-u] [-h]
     options:
       -c  kube-context
+          available contexts:
+$(kubectl config get-contexts -o name | sed 's/^/            - /')
       -b  build
       -i  install
       -u  uninstall
