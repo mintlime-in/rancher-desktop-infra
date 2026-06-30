@@ -1,0 +1,61 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/cerbos/cerbos
+  tag: "0.40.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  httpPort: 3592
+  grpcPort: 3593
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+# MinIO credentials mounted from secret (created by minio.sh)
+env:
+  - name: AWS_ACCESS_KEY_ID
+    valueFrom:
+      secretKeyRef:
+        name: srmvcas-college-portal-iam-admin
+        key: accessKey
+  - name: AWS_SECRET_ACCESS_KEY
+    valueFrom:
+      secretKeyRef:
+        name: srmvcas-college-portal-iam-admin
+        key: secretKey
+  - name: SSL_CERT_FILE
+    value: /etc/ssl/cluster/ca.crt
+
+volumes:
+  - name: cluster-ca
+    configMap:
+      name: kube-root-ca.crt
+
+volumeMounts:
+  - name: cluster-ca
+    mountPath: /etc/ssl/cluster
+    readOnly: true
+
+cerbos:
+  config:
+    server:
+      httpListenAddr: ":3592"
+      grpcListenAddr: ":3593"
+      adminAPI:
+        enabled: false
+    storage:
+      driver: blob
+      blob:
+        # s3ForcePathStyle and endpoint required for MinIO
+        bucket: "s3://college-portal-iam?endpoint=https://minio.srmvcas.svc.cluster.local&region=us-east-1&disableSSL=false&s3ForcePathStyle=true"
+        prefix: policies
+        downloadTimeout: 30s
+        updatePollInterval: 60s
+        workDir: /tmp/cerbos-workdir

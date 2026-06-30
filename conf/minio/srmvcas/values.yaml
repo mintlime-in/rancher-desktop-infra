@@ -1,0 +1,52 @@
+tenant:
+  name: srmvcas-minio
+  requestAutoCert: false
+  image:
+    repository: quay.io/minio/minio
+    tag: RELEASE.2025-04-08T15-41-24Z
+    pullPolicy: IfNotPresent
+  configSecret:
+    name: srmvcas-minio
+    accessKey: minioadmin
+    secretKey: minioadmin123
+  pools:
+    - servers: 1
+      name: pool-0
+      volumesPerServer: 2
+      size: 10Gi
+      resources:
+        requests:
+          memory: 512Mi
+          cpu: 100m
+        limits:
+          memory: 1Gi
+          cpu: 500m
+ingress:
+  api:
+    annotations:
+      cert-manager.io/cluster-issuer: selfsigned-root-issuer
+      nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+      nginx.ingress.kubernetes.io/proxy-ssl-verify: "off"
+    enabled: true
+    ingressClassName: nginx
+    host: s3.srmvcas.localhost
+    path: /
+    pathType: Prefix
+    tls:
+    - hosts:
+      - s3.srmvcas.localhost
+      secretName: srmvcas-s3-ingress-tls
+  console:
+    annotations:
+      cert-manager.io/cluster-issuer: selfsigned-root-issuer
+      nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+      nginx.ingress.kubernetes.io/proxy-ssl-verify: "off"
+    enabled: true
+    ingressClassName: nginx
+    host: minio.srmvcas.localhost
+    path: /
+    pathType: Prefix
+    tls:
+    - hosts:
+      - minio.srmvcas.localhost
+      secretName: srmvcas-minio-ingress-tls

@@ -1,0 +1,9 @@
+users:
+  - name: college-portal-iam-admin
+    password: college-portal-iam-admin
+    policies:
+      - college-portal-iam-admin-identity-policy
+  - name: srmvcas-db-backup
+    password: srmvcas-db-backup-secret
+    policies:
+      - srmvcas-db-backup-policy

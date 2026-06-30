@@ -1,0 +1,158 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: srmvcas
+---
+apiVersion: stackgres.io/v1alpha1
+kind: SGShardedCluster
+metadata:
+  annotations:
+    stackgres.io/operatorVersion: 1.18.4
+  name: srmvcas-db
+  namespace: srmvcas
+spec:
+  type: citus
+  database: srmvcas
+  postgres:
+    version: "18.1"
+    flavor: vanilla
+    ssl:
+      enabled: true
+  profile: testing
+  nonProductionOptions:
+    disableClusterResourceRequirements: true
+    disablePatroniResourceRequirements: true
+  configurations:
+    backups:
+    - compression: lz4
+      cronSchedule: 0 5 * * *
+      fastVolumeSnapshot: false
+      performance:
+        uploadDiskConcurrency: 1
+      reconciliationTimeout: 300
+      retention: 5
+      sgObjectStorage: minio-srmvcas
+      useVolumeSnapshot: false
+  coordinator:
+    instances: 1
+    configurations:
+      sgPoolingConfig: srmvcas-db-default
+      sgPostgresConfig: srmvcas-db-18.1-default
+    managedSql:
+      continueOnSGScriptError: false
+      scripts:
+      - id: 10
+        sgScript: srmvcas-db
+    pods:
+      disableConnectionPooling: false
+      disableEnvoy: true
+      disableMetricsExporter: false
+      disablePostgresUtil: false
+      managementPolicy: OrderedReady
+      persistentVolume:
+        size: 5Gi
+      updateStrategy:
+        method: InPlace
+        type: OnlyDbOps
+      customEnv:
+        patroni:
+        - name: AWS_CA_BUNDLE
+          value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+  shards:
+    clusters: 2
+    instancesPerCluster: 1
+    configurations:
+      sgPoolingConfig: srmvcas-db-default
+      sgPostgresConfig: srmvcas-db-18.1-default
+    pods:
+      disableConnectionPooling: false
+      disableEnvoy: true
+      disableMetricsExporter: false
+      disablePostgresUtil: false
+      managementPolicy: OrderedReady
+      persistentVolume:
+        size: 5Gi
+      updateStrategy:
+        method: InPlace
+        type: OnlyDbOps
+      customEnv:
+        patroni:
+        - name: AWS_CA_BUNDLE
+          value: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+---
+apiVersion: stackgres.io/v1
+kind: SGScript
+metadata:
+  annotations:
+    stackgres.io/operatorVersion: 1.18.4
+  name: srmvcas-db
+  namespace: srmvcas
+spec:
+  managedVersions: true
+  scripts:
+  - id: 10
+    name: srmvcas-setup
+    retryOnError: true
+    script: |
+      CREATE SCHEMA IF NOT EXISTS srmvcas;
+    version: 0
+---
+apiVersion: stackgres.io/v1
+kind: SGPostgresConfig
+metadata:
+  name: srmvcas-db-18.1-default
+  namespace: srmvcas
+spec:
+  postgresVersion: "18"
+  postgresql.conf:
+    shared_preload_libraries: citus
+    max_connections: "200"
+---
+apiVersion: stackgres.io/v1
+kind: SGPoolingConfig
+metadata:
+  name: srmvcas-db-default
+  namespace: srmvcas
+spec:
+  pgBouncer:
+    pgbouncer.ini:
+      pgbouncer:
+        pool_mode: transaction
+        max_client_conn: "200"
+        default_pool_size: "20"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: srmvcas-db-nodeport
+  namespace: srmvcas
+spec:
+  ports:
+  - nodePort: 30008
+    port: 5432
+    protocol: TCP
+    targetPort: 5432
+  selector:
+    app: StackGresCluster
+    stackgres.io/cluster-name: srmvcas-db-coord
+  type: NodePort
+---
+apiVersion: stackgres.io/v1beta1
+kind: SGObjectStorage
+metadata:
+  name: minio-srmvcas
+  namespace: srmvcas
+spec:
+  type: s3Compatible
+  s3Compatible:
+    bucket: srmvcas-backups
+    endpoint: https://minio.srmvcas.svc.cluster.local
+    enablePathStyleAddressing: true
+    awsCredentials:
+      secretKeySelectors:
+        accessKeyId:
+          name: srmvcas-srmvcas-db-backup
+          key: accessKey
+        secretAccessKey:
+          name: srmvcas-srmvcas-db-backup
+          key: secretKey

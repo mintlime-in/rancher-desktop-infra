@@ -7,11 +7,38 @@ function build_fn() {
 }
 
 function install_fn() {
+cat >/tmp/prometheus-stack.yaml <<EOF
+grafana:
+  adminPassword: coe@2024
+  ingress:
+    enabled: true
+    hosts:
+      - grafana.localhost
+    tls:
+      - hosts:
+          - grafana.localhost
+        secretName: grafana-tls
+    annotations:
+      cert-manager.io/cluster-issuer: lets-encrypt
+  sidecar:
+    datasources:
+      env:
+        SKIP_TLS_VERIFY: "true"
+    dashboards:
+      annotations:
+        grafana_folder: "kubernetes"
+      defaultFolderName: "General"
+      folderAnnotation: "grafana_folder"
+      provider:
+        foldersFromFilesStructure: true
+      env:
+        SKIP_TLS_VERIFY: "true"
+EOF
     helm --kube-context ${kubecontext} upgrade --install \
     prometheus prometheus-community/kube-prometheus-stack \
     -n monitoring \
     --create-namespace \
-    -f conf/helm/prometheus-stack.yaml
+    -f /tmp/prometheus-stack.yaml
 }
 
 function uninstall_fn() {

@@ -1,22 +1,28 @@
 #!/bin/bash
 
 function build_fn() {
-    gitClone "https://github.com/ongres/stackgres"
+    helm --kube-context ${kubecontext} repo add stackgres https://stackgres.io/downloads/stackgres-k8s/stackgres/helm/
+    helm --kube-context ${kubecontext} repo update stackgres
 }
 
 function install_fn() {
-    helm --kube-context ${kubecontext} upgrade --install --create-namespace \
-    --namespace stackgres \
-    stackgres-operator -f conf/helm/stackgres.yaml \
-    --create-namespace \
-    https://stackgres.io/downloads/stackgres-k8s/stackgres/latest/helm/stackgres-operator.tgz
+    helm --kube-context ${kubecontext} upgrade --install \
+    --create-namespace -n stackgres \
+    --force-conflicts \
+    stackgres-operator stackgres/stackgres-operator \
+    --set-string adminui.service.type=ClusterIP
 
-    kubectl --context ${kubecontext} apply -f conf/stackgres.yaml
+    for ns_dir in conf/stackgres/*/; do
+        kubectl --context ${kubecontext} apply -f "${ns_dir}"
+    done
 }
 
 function uninstall_fn() {
+    for ns_dir in conf/stackgres/*/; do
+        kubectl --context ${kubecontext} delete -f "${ns_dir}"
+    done
+    
     helm --kube-context ${kubecontext} uninstall stackgres-operator -n stackgres
-    kubectl --context ${kubecontext} delete -f conf/stackgres.yaml
 }
 
 cd $(dirname $0) && source lib/helpers.sh && source lib/installer.sh
