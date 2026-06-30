@@ -13,6 +13,7 @@ function install_fn() {
 
     for tenant_dir in conf/minio/*/; do
         tenant=$(basename "${tenant_dir}")
+        tenant_matches "${tenant}" || continue
         helm --kube-context ${kubecontext} upgrade --install \
             -n "${tenant}" "${tenant}-minio" minio/tenant \
             -f "${tenant_dir}/values.yaml" \

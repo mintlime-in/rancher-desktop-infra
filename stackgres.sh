@@ -13,12 +13,14 @@ function install_fn() {
     --set-string adminui.service.type=ClusterIP
 
     for ns_dir in conf/stackgres/*/; do
+        tenant_matches "$(basename "${ns_dir}")" || continue
         kubectl --context ${kubecontext} apply -f "${ns_dir}"
     done
 }
 
 function uninstall_fn() {
     for ns_dir in conf/stackgres/*/; do
+        tenant_matches "$(basename "${ns_dir}")" || continue
         kubectl --context ${kubecontext} delete -f "${ns_dir}"
     done
     
