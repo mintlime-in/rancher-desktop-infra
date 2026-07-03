@@ -65,20 +65,6 @@ echo "kubecontext: ${kubecontext}"
   build_fn
 }
 
-[[ "${install}" -eq 1 ]] && {
-  echo -n "Installing ${scriptName} in '${kubecontext}' cluster. Proceed[Y/n]?:"
-  read -n 1 prompt
-  echo
-  prompt=$(echo $prompt | tr '[a-z]' '[A-Z]')
-  [[ $prompt == "" ]] && prompt="Y"
-  [[ $prompt == "Y" ]] && install_fn
-}
+[[ "${install}" -eq 1 ]] && install_fn
 
-[[ "${uninstall}" -eq 1 ]] && {
-  echo -n "Uninstalling ${scriptName} in '${kubecontext}' cluster. Proceed[Y/n]?:"
-  read -n 1 prompt
-  echo
-  prompt=$(echo $prompt | tr '[a-z]' '[A-Z]')
-  [[ $prompt == "" ]] && prompt="Y"
-  [[ $prompt == "Y" ]] && uninstall_fn
-}
+[[ "${uninstall}" -eq 1 ]] && uninstall_fn
