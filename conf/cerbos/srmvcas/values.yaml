@@ -2,7 +2,7 @@ replicaCount: 1
 
 image:
   repository: ghcr.io/cerbos/cerbos
-  tag: "0.40.0"
+  tag: "0.46.0"
   pullPolicy: IfNotPresent
 
 service:
@@ -53,8 +53,8 @@ cerbos:
     storage:
       driver: blob
       blob:
-        # s3ForcePathStyle and endpoint required for MinIO
-        bucket: "s3://college-portal-iam?endpoint=https://minio.srmvcas.svc.cluster.local&region=us-east-1&disableSSL=false&s3ForcePathStyle=true"
+        # hostname_immutable and endpoint required for MinIO
+        bucket: "s3://college-portal-iam?endpoint=https://minio.srmvcas.svc.cluster.local&region=us-east-1&hostname_immutable=true"
         prefix: policies
         downloadTimeout: 30s
         updatePollInterval: 60s
